@@ -97,6 +97,7 @@ extern char *tmpdir;
 extern char *basis_dir[MAX_BASIS_DIRS+1];
 extern struct file_list *cur_flist, *first_flist, *dir_flist;
 extern filter_rule_list filter_list, daemon_filter_list;
+extern char *seperate_attrs;
 
 int maybe_ATTRS_REPORT = 0;
 
@@ -1166,10 +1167,91 @@ static BOOL is_below(struct file_struct *file, struct file_struct *subtree)
 		&& (!implied_dirs_are_missing || f_name_has_prefix(file, subtree));
 }
 
-/* Acts on the indicated item in cur_flist whose name is fname.  If a dir,
- * make sure it exists, and has the right permissions/timestamp info.  For
- * all other non-regular files (symlinks, etc.) we create them here.  For
- * regular files that have changed, we try to find a basis file and then
+static const char* get_attr_fname(const char* fname) {
+	extern char* seperate_attrs;
+	static char attr_fname[MAXPATHLEN];
+	
+	extern char *module_dir;
+	extern unsigned int module_dirlen;
+	extern char curr_dir[MAXPATHLEN];
+
+	if (seperate_attrs && *seperate_attrs) {
+		char *attr_prefix = seperate_attrs;
+		char now_cwd[MAXPATHLEN];
+		char *now_relative_cwd;
+		strlcpy(now_cwd, curr_dir, MAXPATHLEN);
+		size_t cwd_length = strlen(now_cwd);
+		if(cwd_length < module_dirlen){
+			return NULL;
+		}
+		if(strncmp(now_cwd, module_dir, module_dirlen) != 0){
+			return NULL;
+		}
+		if(module_dirlen > 0 && module_dir[module_dirlen - 1] == '/'){
+			now_relative_cwd = now_cwd + module_dirlen;
+		}else if(now_cwd[module_dirlen] == '/'){
+			now_relative_cwd = now_cwd + module_dirlen + 1;
+		}else if(now_cwd[module_dirlen] == '\0'){
+			now_relative_cwd = now_cwd + module_dirlen;
+		}else{
+			return NULL;
+		}
+		int ret = pathjoin(attr_fname, MAXPATHLEN, attr_prefix, now_relative_cwd);
+		if (ret >= MAXPATHLEN) {
+			return NULL;
+		}
+		strlcpy(now_cwd, attr_fname, MAXPATHLEN);
+		ret = pathjoin(attr_fname, MAXPATHLEN, now_cwd, fname);
+		if(ret >= MAXPATHLEN){
+			return NULL;
+		}
+		return attr_fname;
+	} else {
+		return fname;
+	}
+}
+
+int file_stat(const char *fname, STRUCT_STAT *st) {
+	extern char* seperate_attrs;
+	if (seperate_attrs && *seperate_attrs) {
+		const char* attr_fname = get_attr_fname(fname);
+		int ret;
+		if ((ret = do_stat(attr_fname, st)) < 0) {
+			return ret;
+		}
+		
+		int fd = open(attr_fname, O_RDONLY);
+		if(fd < 0){
+			return -1;
+		}
+		unsigned char buf[8];
+		uint64_t file_size = 0;
+		ret = read(fd, buf, 8);
+		close(fd);
+		if(ret < 0){
+			return -1;
+		} else if(ret != 8){
+			errno = EINVAL;
+			return -1;
+		}
+		for (size_t i = 0; i < 8; i++) {
+			file_size += buf[i] * ((uint64_t) 1 << i * 8);
+		}
+		
+		st->st_size = file_size;
+	} else {
+		return do_stat(fname, st);		
+	}
+}
+
+/* Acts on the indicated item in cur_flist whose name is fname.
+ * The acts are conceptually devided into two parts: checking and modifying.
+ * If 'seperate-attrs' indicated, use attrs-path for checking.
+ * 
+ * If a dir, make sure it exists, and has the right permissions/timestamp info.  
+ * For all other non-regular files (symlinks, etc.) we create them here.  
+ * 
+ * For regular files that have changed, we try to find a basis file and then
  * start sending checksums.  The ndx is the file's unique index value.
  *
  * The fname parameter must point to a MAXPATHLEN buffer!  (e.g it gets
@@ -1202,6 +1284,11 @@ static void recv_generator(char *fname, struct file_struct *file, int ndx,
 	int is_dir = !S_ISDIR(file->mode) ? 0
 		   : inc_recurse && ndx != cur_flist->ndx_start - 1 ? -1
 		   : 1;
+	
+	// int is_dir = S_ISDIR(file->mode);
+	// if (is_dir && inc_recurse && ndx != cur_flist->ndx_start - 1) {
+	// 	is_dir = -1;
+	// }
 
 	if (DEBUG_GTE(GENR, 1))
 		rprintf(FINFO, "recv_generator(%s,%d)\n", fname, ndx);
@@ -1275,7 +1362,7 @@ static void recv_generator(char *fname, struct file_struct *file, int ndx,
 			}
 			// TODO: wrap do_stat
 			if (relative_paths && !implied_dirs
-			 && do_stat(dn, &sx.st) < 0) {
+			 && attr_stat(dn, &sx.st) < 0) {
 				if (dry_run)
 					goto parent_is_dry_missing;
 				if (make_path(fname, MKP_DROP_NAME | MKP_SKIP_SLASH) < 0) {
@@ -1318,7 +1405,7 @@ static void recv_generator(char *fname, struct file_struct *file, int ndx,
 		}
 		
 		// TODO: wrap link_stat
-		statret = link_stat(fname, &sx.st, keep_dirlinks && is_dir);
+		statret = wrapperd_link_stat(fname, &sx.st, keep_dirlinks && is_dir);
 		stat_errno = errno;
 	}
 
@@ -2176,6 +2263,7 @@ void check_for_finished_files(int itemizing, enum logcode code, int check_redo)
 
 void generate_files(int f_out, const char *local_name)
 {
+	sleep(30);
 	int i, ndx, next_loopchk = 0;
 	char fbuf[MAXPATHLEN];
 	int itemizing;

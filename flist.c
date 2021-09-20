@@ -75,6 +75,7 @@ extern uid_t our_uid;
 extern struct stats stats;
 extern char *filesfrom_host;
 extern char *usermap, *groupmap;
+extern char *seperate_attrs;
 
 extern char curr_dir[MAXPATHLEN];
 
@@ -256,10 +257,29 @@ static int readlink_stat_realinfo(const char *path, STRUCT_STAT *stp, char *link
 	return 0;
 }
 
-int link_attr_stat(const char *path, STRUCT_STAT *stp, int follow_dirlinks)
+int attr_stat(const char *fname, STRUCT_STAT *st) {
+	const char attr_path[MAXPATHLEN * 2];
+	if (am_generator && seperate_attrs && *seperate_attrs) {
+		char *attr_prefix = seperate_attrs;
+		strcpy(attr_path, attr_prefix);
+		strcat(attr_path, path);
+		return do_stat(attr_path, stp);
+	} else {
+		return do_stat(path, stp);	
+	}
+}
+
+int wrapped_link_stat(const char *path, STRUCT_STAT *stp, int follow_dirlinks)
 {
-	int ret = link_stat(path, stp, follow_dirlinks);
-	if (am_generator &&)
+	const char attr_path[MAXPATHLEN * 2];
+	if (am_generator && seperate_attrs && *seperate_attrs) {
+		char *attr_prefix = seperate_attrs;
+		strcpy(attr_path, attr_prefix);
+		strcat(attr_path, path);
+		return link_stat(attr_path, stp, follow_dirlinks);
+	} else {
+		return link_stat(path, stp, follow_dirlinks);	
+	}
 }
 
 int link_stat(const char *path, STRUCT_STAT *stp, int follow_dirlinks)

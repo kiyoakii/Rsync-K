@@ -95,6 +95,7 @@ extern char *basis_dir[MAX_BASIS_DIRS+1];
 extern struct file_list *first_flist;
 extern filter_rule_list daemon_filter_list;
 extern int only_send_attrs;
+extern char *seperate_attrs;
 
 uid_t our_uid;
 gid_t our_gid;
@@ -614,7 +615,7 @@ static char *get_local_name(struct file_list *flist, char *dest_path)
 
 	/* See what currently exists at the destination. */
 	// TODO: wrap do_stat
-	if ((statret = do_stat(dest_path, &st)) == 0) {
+	if ((statret = attr_stat(dest_path, &st)) == 0) {
 		/* If the destination is a dir, enter it and use mode 1. */
 		if (S_ISDIR(st.st_mode)) {
 			if (!change_dir(dest_path, CD_NORMAL)) {
@@ -837,7 +838,6 @@ static void do_server_sender(int f_in, int f_out, int argc, char *argv[])
 	io_flush(FULL_FLUSH);
 	exit_cleanup(0);
 }
-
 
 static int do_recv(int f_in, int f_out, char *local_name)
 {
