@@ -90,6 +90,7 @@ int msgs2stderr = 0;
 int allow_8bit_chars = 0;
 int force_delete = 0;
 int only_send_attrs = 0;
+char *seperate_attrs = NULL;
 int io_timeout = 0;
 int prune_empty_dirs = 0;
 int use_qsort = 0;
@@ -1038,7 +1039,8 @@ static struct poptOption long_options[] = {
   {"blocking-io",      0,  POPT_ARG_VAL,    &blocking_io, 1, 0, 0 },
   {"no-blocking-io",   0,  POPT_ARG_VAL,    &blocking_io, 0, 0, 0 },
   {"only-send-attrs",  0,  POPT_ARG_VAL,    &only_send_attrs, 1, 0, 0},
-	{"no-only-send-attrs",0,  POPT_ARG_VAL,    &only_send_attrs, 0, 0, 0},
+  {"no-only-send-attrs",0, POPT_ARG_VAL,    &only_send_attrs, 0, 0, 0},
+  {"seperate-attrs",   0,  POPT_ARG_STRING, &seperate_attrs, 0, 0, 0},
 #ifdef HAVE_SETVBUF
   {"outbuf",           0,  POPT_ARG_STRING, &outbuf_mode, 0, 0, 0 },
 #endif
@@ -2384,6 +2386,10 @@ void server_options(char **args, int *argc_p)
 		args[ac++] = "--sender";
 	if (only_send_attrs)
 	  args[ac++] = "--only-send-attrs";
+	if (seperate_attrs) {
+	  args[ac++] = "--seperate-attrs";
+	  args[ac++] = seperate_attrs;
+	}
 
 	x = 1;
 	argstr[0] = '-';
