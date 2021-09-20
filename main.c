@@ -945,7 +945,7 @@ static int do_recv(int f_in, int f_out, char *local_name)
 	flist_receiving_enabled = True;
 	
 	// for GDB to debug generator process
-	sleep(30);
+	// sleep(30);
 	
 	io_end_multiplex_in(MPLX_SWITCHING);
 	if (write_batch && !am_server)

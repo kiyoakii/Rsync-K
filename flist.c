@@ -257,29 +257,80 @@ static int readlink_stat_realinfo(const char *path, STRUCT_STAT *stp, char *link
 	return 0;
 }
 
-int attr_stat(const char *fname, STRUCT_STAT *st) {
-	const char attr_path[MAXPATHLEN * 2];
+int attr_stat(const char *fname, STRUCT_STAT *stp)
+{
+	int retval;
 	if (am_generator && seperate_attrs && *seperate_attrs) {
 		char *attr_prefix = seperate_attrs;
-		strcpy(attr_path, attr_prefix);
-		strcat(attr_path, path);
-		return do_stat(attr_path, stp);
+	
+		char attr_path[MAXPATHLEN * 2];
+		pathjoin(attr_path, MAXPATHLEN * 2, attr_prefix, fname);
+
+		rprintf(FINFO, "[generator]do_stat(%s) with seperate_attrs prefix: %s\n"
+		               "           attr_path: %s\n", fname, attr_prefix, attr_path);
+		retval = do_stat(attr_path, stp);
+		if(S_ISREG(stp->st_mode)) {
+			int fd = open(attr_path, O_RDONLY);
+			if(fd < 0){
+				return -1;
+			}
+			unsigned char buf[8];
+			uint64_t file_size = 0;
+			int ret = read(fd, buf, 8);
+			close(fd);
+			if(ret < 0){
+				return -1;
+			} else if(ret != 8){
+				errno = EINVAL;
+				return -1;
+			}
+			for (size_t i = 0; i < 8; i++) {
+				file_size += buf[i] * ((uint64_t) 1 << i * 8);
+			}
+			stp->st_size = file_size;
+		}
 	} else {
-		return do_stat(path, stp);	
+		retval = do_stat(fname, stp);	
 	}
+	return retval;
 }
 
 int wrapped_link_stat(const char *path, STRUCT_STAT *stp, int follow_dirlinks)
 {
-	const char attr_path[MAXPATHLEN * 2];
+	int retval;
 	if (am_generator && seperate_attrs && *seperate_attrs) {
 		char *attr_prefix = seperate_attrs;
-		strcpy(attr_path, attr_prefix);
-		strcat(attr_path, path);
-		return link_stat(attr_path, stp, follow_dirlinks);
+
+		char attr_path[MAXPATHLEN * 2];
+		pathjoin(attr_path, MAXPATHLEN * 2, attr_prefix, path);
+		rprintf(FINFO, "[generator]link_stat(%s) with seperate_attrs prefix: %s\n"
+		               "           attr_path: %s\n", path, attr_prefix, attr_path);
+
+		retval = link_stat(attr_path, stp, follow_dirlinks);
+		if(S_ISREG(stp->st_mode)) {
+			int fd = open(attr_path, O_RDONLY);
+			if(fd < 0){
+				return -1;
+			}
+			unsigned char buf[8];
+			uint64_t file_size = 0;
+			int ret = read(fd, buf, 8);
+			close(fd);
+			if(ret < 0){
+				return -1;
+			} else if(ret != 8){
+				errno = EINVAL;
+				return -1;
+			}
+			for (size_t i = 0; i < 8; i++) {
+				file_size += buf[i] * ((uint64_t) 1 << i * 8);
+			}
+			stp->st_size = file_size;
+		}
 	} else {
-		return link_stat(path, stp, follow_dirlinks);	
+		retval = link_stat(path, stp, follow_dirlinks);
 	}
+	return retval;
 }
 
 int link_stat(const char *path, STRUCT_STAT *stp, int follow_dirlinks)
