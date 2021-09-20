@@ -1179,7 +1179,7 @@ static BOOL is_below(struct file_struct *file, struct file_struct *subtree)
  * modification-time repair. */
 static void recv_generator(char *fname, struct file_struct *file, int ndx,
 			   int itemizing, enum logcode code, int f_out)
-{
+{	
 	static const char *parent_dirname = "";
 	static struct file_struct *prior_dir_file = NULL;
 	/* Missing dir not created due to --dry-run; will still be scanned. */
@@ -1273,6 +1273,7 @@ static void recv_generator(char *fname, struct file_struct *file, int ndx,
 					dn, file->basename);
 				exit_cleanup(RERR_PROTOCOL);
 			}
+			// TODO: wrap do_stat
 			if (relative_paths && !implied_dirs
 			 && do_stat(dn, &sx.st) < 0) {
 				if (dry_run)
@@ -1301,6 +1302,7 @@ static void recv_generator(char *fname, struct file_struct *file, int ndx,
 		parent_dirname = dn;
 
 		if (need_fuzzy_dirlist && S_ISREG(file->mode)) {
+			// need to find similar file for basis if no dest file
 			int i;
 			strlcpy(fnamecmpbuf, dn, sizeof fnamecmpbuf);
 			for (i = 0; i < fuzzy_basis; i++) {
@@ -1314,7 +1316,8 @@ static void recv_generator(char *fname, struct file_struct *file, int ndx,
 			}
 			need_fuzzy_dirlist = 0;
 		}
-
+		
+		// TODO: wrap link_stat
 		statret = link_stat(fname, &sx.st, keep_dirlinks && is_dir);
 		stat_errno = errno;
 	}
@@ -1785,6 +1788,8 @@ static void recv_generator(char *fname, struct file_struct *file, int ndx,
 		goto cleanup;
 	}
 
+
+  // seems able to use fnamecmp
   prepare_to_open:
 	if (partialptr) {
 		sx.st = partial_st;

@@ -256,6 +256,12 @@ static int readlink_stat_realinfo(const char *path, STRUCT_STAT *stp, char *link
 	return 0;
 }
 
+int link_attr_stat(const char *path, STRUCT_STAT *stp, int follow_dirlinks)
+{
+	int ret = link_stat(path, stp, follow_dirlinks);
+	if (am_generator &&)
+}
+
 int link_stat(const char *path, STRUCT_STAT *stp, int follow_dirlinks)
 {
 #ifdef SUPPORT_LINKS
@@ -1178,7 +1184,12 @@ static struct file_struct *recv_file_entry(int f, struct file_list *flist, int x
  * Note: Any error (here or in send_file_name) that results in the omission of
  * an existent source file from the file list should set
  * "io_error |= IOERR_GENERAL" to avoid deletion of the file from the
- * destination if --delete is on. */
+ * destination if --delete is on. 
+ * 
+ * Normally used by sender to first create flist.
+ * If sender && daemon, read attr file to get real file size,
+ * if sender && only-send-attrs, set size attribute to 8
+ * */
 struct file_struct *make_file(const char *fname, struct file_list *flist,
 			      STRUCT_STAT *stp, int flags, int filter_level)
 {

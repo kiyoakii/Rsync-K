@@ -613,6 +613,7 @@ static char *get_local_name(struct file_list *flist, char *dest_path)
 	}
 
 	/* See what currently exists at the destination. */
+	// TODO: wrap do_stat
 	if ((statret = do_stat(dest_path, &st)) == 0) {
 		/* If the destination is a dir, enter it and use mode 1. */
 		if (S_ISDIR(st.st_mode)) {
@@ -942,7 +943,10 @@ static int do_recv(int f_in, int f_out, char *local_name)
 
 	am_generator = 1;
 	flist_receiving_enabled = True;
-
+	
+	// for GDB to debug generator process
+	sleep(30);
+	
 	io_end_multiplex_in(MPLX_SWITCHING);
 	if (write_batch && !am_server)
 		stop_write_batch();
