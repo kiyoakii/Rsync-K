@@ -944,8 +944,17 @@ static int do_recv(int f_in, int f_out, char *local_name)
 	am_generator = 1;
 	flist_receiving_enabled = True;
 	
-	// for GDB to debug generator process
-	// sleep(30);
+	// IO stat
+	if (am_generator) {
+		int pid = getpid();
+		char pfile[100], a[100];
+		sprintf(pfile, "/proc/%d/io", pid);
+		int fd = open(pfile, O_RDONLY);
+		while (read_line(fd, a, 100, 0) > 0) {
+			rprintf(FINFO, "%s\n", a);
+		}
+		close(fd);
+	}
 	
 	io_end_multiplex_in(MPLX_SWITCHING);
 	if (write_batch && !am_server)

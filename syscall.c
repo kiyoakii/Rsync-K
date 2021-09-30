@@ -97,9 +97,19 @@ int do_symlink(const char *lnk, const char *fname)
 #if defined NO_SYMLINK_XATTRS || defined NO_SYMLINK_USER_XATTRS
 ssize_t do_readlink(const char *path, char *buf, size_t bufsiz)
 {
+	extern int am_generator;
+	extern char* seperate_attrs;
+	char attr_path[MAXPATHLEN * 2];
+	strcpy(attr_path, path);
+	
+	if (am_generator && seperate_attrs && *seperate_attrs) {
+		char *attr_prefix = seperate_attrs;
+		pathjoin(attr_path, MAXPATHLEN * 2, attr_prefix, path);
+	}
+	// rprintf(FINFO, "do_readlink: path = %s, buf = %s\n", path, buf);
 	/* For --fake-super, we read the link from the file. */
 	if (am_root < 0) {
-		int fd = do_open_nofollow(path, O_RDONLY);
+		int fd = do_open_nofollow(attr_path, O_RDONLY);
 		if (fd >= 0) {
 			int len = read(fd, buf, bufsiz);
 			close(fd);
@@ -114,7 +124,7 @@ ssize_t do_readlink(const char *path, char *buf, size_t bufsiz)
 		/* Otherwise fall through and let the sender report the real length. */
 	}
 
-	return readlink(path, buf, bufsiz);
+	return readlink(attr_path, buf, bufsiz);
 }
 #endif
 #endif

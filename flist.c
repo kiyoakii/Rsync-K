@@ -262,12 +262,11 @@ int attr_stat(const char *fname, STRUCT_STAT *stp)
 	int retval;
 	if (am_generator && seperate_attrs && *seperate_attrs) {
 		char *attr_prefix = seperate_attrs;
-	
+
 		char attr_path[MAXPATHLEN * 2];
 		pathjoin(attr_path, MAXPATHLEN * 2, attr_prefix, fname);
 
-		rprintf(FINFO, "[generator]do_stat(%s) with seperate_attrs prefix: %s\n"
-		               "           attr_path: %s\n", fname, attr_prefix, attr_path);
+		// rprintf(FINFO, "[generator] do_stat(%s) with seperate_attrs prefix: %s  attr_path: %s\n", fname, attr_prefix, attr_path);
 		retval = do_stat(attr_path, stp);
 		if(S_ISREG(stp->st_mode)) {
 			int fd = open(attr_path, O_RDONLY);
@@ -303,8 +302,7 @@ int wrapped_link_stat(const char *path, STRUCT_STAT *stp, int follow_dirlinks)
 
 		char attr_path[MAXPATHLEN * 2];
 		pathjoin(attr_path, MAXPATHLEN * 2, attr_prefix, path);
-		rprintf(FINFO, "[generator]link_stat(%s) with seperate_attrs prefix: %s\n"
-		               "           attr_path: %s\n", path, attr_prefix, attr_path);
+		// rprintf(FINFO, "[generator] link_stat(%s) with seperate_attrs prefix: %s attr_path: %s\n", path, attr_prefix, attr_path);
 
 		retval = link_stat(attr_path, stp, follow_dirlinks);
 		if(S_ISREG(stp->st_mode)) {
