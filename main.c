@@ -944,18 +944,6 @@ static int do_recv(int f_in, int f_out, char *local_name)
 	am_generator = 1;
 	flist_receiving_enabled = True;
 	
-	// IO stat
-	if (am_generator) {
-		int pid = getpid();
-		char pfile[100], a[100];
-		sprintf(pfile, "/proc/%d/io", pid);
-		int fd = open(pfile, O_RDONLY);
-		while (read_line(fd, a, 100, 0) > 0) {
-			rprintf(FINFO, "%s\n", a);
-		}
-		close(fd);
-	}
-	
 	io_end_multiplex_in(MPLX_SWITCHING);
 	if (write_batch && !am_server)
 		stop_write_batch();
@@ -982,6 +970,18 @@ static int do_recv(int f_in, int f_out, char *local_name)
 	handle_stats(-1);
 	io_flush(FULL_FLUSH);
 	shutting_down = True;
+	// IO stat
+	if (am_generator) {
+		rprintf(FINFO, "IO stat:\n");
+		int pid = getpid();
+		char iofile[100], a[100];
+		sprintf(iofile, "/proc/%d/io", pid);
+		int fd = open(iofile, O_RDONLY);
+		while (read_line(fd, a, 100, 0) > 0) {
+			rprintf(FINFO, "%s\n", a);
+		}
+		close(fd);
+	}
 	if (protocol_version >= 24) {
 		/* send a final goodbye message */
 		write_ndx(f_out, NDX_DONE);
