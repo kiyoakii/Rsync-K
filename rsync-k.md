@@ -1,14 +1,12 @@
 # Intro
 
-Rsync-K is a project conducted during OSPP-2021 by USTCLUG. It is developed with wish to optimize I/O performance when regularly pulling from upstream with existed attr-tree built by Rsync-huai.
+Rsync-K is a project conducted by USTCLUG in OSPP-2021. Its development begins with a wish to optimize I/O performance on HDDs during regular pulling from upstream with the existing attr-tree built by Rsync-huai.
 
-
-
-The modification is mainly done with generator. Generator, a role and a process on the same host as receiver, generally has two things to do. First, it checks local basis files after receiver receives file list and fork it self to be a generator. Second, it cuts a file to chunks and computes checksums. To be more specific, the modification is done by changing generator's behavior during phase one.
+The modification changes generator, a role and a process on the same host as the receiver. The generator generally has two things to do. First, it checks local basis files after the receiver receives file lists and forks itself to be a generator. Second, it cuts a file into chunks and computes checksums. To be more specific, the modification changes the generator's behavior during phase one.
 
 # Implementation
 
-One option is added: seperate-attrs, followed by which is path of attr-tree, assumed to be somewhere in memory (tmpfs).
+One option is added: seperate-attrs, followed by which is path of attr-tree, assumed to be somewhere in fast storage like memory(tmpfs) or SSD.
 
 # Test
 
@@ -54,9 +52,9 @@ And `/srv/repo/CTAN-cp` should be an empty directory because all attributes in a
 
 As assumed, the bytes read has been enormously reduced, by 99.83%.
 
-# Acknowledgements
+# Acknowledgments
 
-I would like to thank OSPP for giving financial support to this project. 
+I want to thank OSPP for giving financial support to this project.
 
-I would like to give sincere appreciation to Jiahao Li, who chatted with me at an early time about this project and helped me to solve a string output issue, and Keyu Tao, who is officially mentor of this project and also my friend in real life.
+I want to give sincere appreciation to Jiahao Li, who chatted with me early about this project and helped me solve a string output issue. Also, Keyu Tao, the official mentor of this project and my friend in real life, plays a significant role in this project.
 
